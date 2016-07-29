@@ -1,5 +1,5 @@
 // size of the outer div for skull icons
-export const eSize = 35;
+export const eSize = 30;
 
 export const newChestStyle = {
   position: 'absolute',

@@ -27094,7 +27094,7 @@
 	  value: true
 	});
 	// size of the outer div for skull icons
-	var eSize = exports.eSize = 35;
+	var eSize = exports.eSize = 30;
 
 	var newChestStyle = exports.newChestStyle = {
 	  position: 'absolute',
