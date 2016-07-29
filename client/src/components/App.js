@@ -36,8 +36,9 @@ export default class App extends React.Component {
   }
 
   componentDidMount() {
-    const locationSource = this.getUserLocation.bind(this);
-    setInterval(locationSource, 7000);
+    // const locationSource = this.getUserLocation.bind(this);
+    // setInterval(locationSource, 7000);
+    this.getUserLocation();
     this.props.mainSocket.on('getUserScore', (score) => {
       this.setState({
         score: score,
@@ -133,9 +134,10 @@ export default class App extends React.Component {
     const that = this;
     if (navigator.geolocation) {
       console.log('Geolocation is supported!');
-      navigator.geolocation.getCurrentPosition((position, error) => {
+      navigator.geolocation.watchPosition((position, error) => {
+        console.log('the position is', position)
         that.setPosition(position);
-      });
+      }, (error) => {console.log(error.code)} ,{enableHighAccuracy:true});
     }
   }
 

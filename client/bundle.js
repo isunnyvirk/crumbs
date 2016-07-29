@@ -21172,8 +21172,9 @@
 	    value: function componentDidMount() {
 	      var _this2 = this;
 
-	      var locationSource = this.getUserLocation.bind(this);
-	      setInterval(locationSource, 7000);
+	      // const locationSource = this.getUserLocation.bind(this);
+	      // setInterval(locationSource, 7000);
+	      this.getUserLocation();
 	      this.props.mainSocket.on('getUserScore', function (score) {
 	        _this2.setState({
 	          score: score
@@ -21302,9 +21303,12 @@
 	      var that = this;
 	      if (navigator.geolocation) {
 	        console.log('Geolocation is supported!');
-	        navigator.geolocation.getCurrentPosition(function (position, error) {
+	        navigator.geolocation.watchPosition(function (position, error) {
+	          console.log('the position is', position);
 	          that.setPosition(position);
-	        });
+	        }, function (error) {
+	          console.log(error.code);
+	        }, { enableHighAccuracy: true });
 	      }
 	    }
 
