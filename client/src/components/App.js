@@ -26,19 +26,17 @@ export default class App extends React.Component {
 
   componentWillMount() {
     this.logOutUser = this.logOutUser.bind(this);
-
     this.getTreasureChests();
-
     this.getUserScore();
     this.getUserChests();
-    // selects and executes which source to use for setting the location state of
-    // user.
+    // selects and executes which source to use for setting the location state of user.
   }
 
   componentDidMount() {
     // const locationSource = this.getUserLocation.bind(this);
     // setInterval(locationSource, 7000);
     this.getUserLocation();
+
     this.props.mainSocket.on('getUserScore', (score) => {
       this.setState({
         score: score,
@@ -61,9 +59,12 @@ export default class App extends React.Component {
     });
 
     this.props.mainSocket.on('updateUserPoints', (results) => {
-      console.log('coming back to update points!', results)
+      console.log('points will update? - answer: ', results)
       if (results) {
         this.state.score++;
+        console.log('getting user chests')
+        this.getUserChests();
+        // this.advert();
       }
     });
 
@@ -78,19 +79,54 @@ export default class App extends React.Component {
     });
   }
 
+  // advert() {
+  //   var temp =this.state.score; 
+  //   setTimeout(function() {
+  //     alert(temp + " whole dollar? Subway's ham sandwich happens to be JUST that amount!", <br />, "TODAY ONLY!")
+  //   }, 3000)
+  // }
+
+
+
+
+
+
   updateTreasureState() {
     if (this.state.treasureChestData.length) {
       for (var i = 0; i < this.state.treasureChestData.length; i++) {
-        if (this.state.location === this.state.homebase) {
-          this.bankYourMoney();
-          return;
-        } else {
-          if (this.state.location === this.state.treasureChestData[i].location) {
-          console.log('user     location: ', this.state.location);
-          console.log('treasure location: ', this.state.treasureChestData[i].location);
-            this.updateUserPoints();
-          }
+
+        // console.log('treasureChestData[i]: ', this.state.treasureChestData[i].location )
+        // console.log('state location: ', this.state.location )
+
+        var chestLat = this.state.treasureChestData[i].location.slice(0, 6);
+        var chestLong = this.state.treasureChestData[i].location.slice(7, 15);
+        var stateLat = this.state.location.slice(0, 6);
+        var stateLong = this.state.location.slice(7, 15);
+
+        // console.log('chest: ', chestLat, chestLong)
+        // console.log('state: ', stateLat, stateLong)
+        // console.log('chest: ', chestLat, chestLong, ' state: ', stateLat, stateLong)
+        // if ( ( stateLat > (chestLat-5) && stateLat < (chestLat+5) ) 
+        //    &&
+        //    ( stateLong > (chestLong-5) && stateLong < (chestLong+5) ) ) {
+        //   console.log('in range! Calling updateUserPoints')
+        // }
+        if (chestLat === stateLat && chestLong === stateLong) {
+          console.log('a match!')
+          this.updateUserPoints();
         }
+
+        // if (this.state.location === this.state.homebase) {
+        //   this.bankYourMoney();
+        //   return;
+        // } else {
+
+            // console.log('user     location: ', this.state.location);
+            // console.log('treasure location: ', this.state.treasureChestData[i].location);
+          // if (this.state.location === this.state.treasureChestData[i].location) {
+          //   console.log('shbooooooooooooooooooooooooooooooooooooooom!')
+          // }
+        // }
       }
     }
   }
@@ -100,8 +136,16 @@ export default class App extends React.Component {
       hoard: this.state.hoard = this.state.score,
       score: 0,
     })
+    //if score is greater than X, do something/change something
     console.log('Your new hoard balance is: ', this.state.hoard)
   }
+
+  stealYourMoney() {
+    this.setState({
+      score: 0,
+    })
+  }
+
   getUserScore() {
     this.props.mainSocket.emit('getUserScore', { username: this.state.username });
   }
@@ -115,7 +159,12 @@ export default class App extends React.Component {
   }
 
   updateUserPoints() {
-    var userObj = { username: this.state.username, location: this.state.location };
+
+    //saving treasurechest as a fixed(3)
+    var stateLat = this.state.location.substring(0, 6);
+    var stateLong = this.state.location.substring(7, 15);
+    var newLocation = String(stateLat) + String(stateLong);
+    var userObj = { username: this.state.username, location: newLocation };
     this.props.mainSocket.emit('updateUserPoints', userObj);
   }
   // will continually update our location state with our new position
@@ -185,8 +234,10 @@ export default class App extends React.Component {
         center={this.state.center}
         treasureChestData={this.state.treasureChestData}
         score={this.state.score}
+        hoard={this.state.hoard}
         userChests={this.state.userChests}
       />
+      
     );
 
     const notLoggedIn = (
