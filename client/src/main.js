@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import App from './components/App';
 import io from 'socket.io-client';
 
-const mainSocket = io('http://localhost:3000');
+const mainSocket = io();
 
 ReactDOM.render(
   <App mainSocket={mainSocket} />,
