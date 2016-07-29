@@ -36,8 +36,8 @@ export default class App extends React.Component {
   }
 
   componentDidMount() {
-    const locationSource = this.updateLocationState.bind(this);
-    setInterval(locationSource, 1000);
+    const locationSource = this.getUserLocation.bind(this);
+    setInterval(locationSource, 7000);
     this.props.mainSocket.on('getUserScore', (score) => {
       this.setState({
         score: score,
@@ -81,7 +81,6 @@ export default class App extends React.Component {
     if (this.state.treasureChestData.length) {
       for (var i = 0; i < this.state.treasureChestData.length; i++) {
         if (this.state.location === this.state.homebase) {
-          console.log("BANK YOUR MONEY, BABYYY!");
           this.bankYourMoney();
           return;
         } else {
@@ -141,20 +140,20 @@ export default class App extends React.Component {
   }
 
   // will watch our location and frequently call set position
-  updateLocationState() {
-    // need this, every individual call to move
-    var dummyLat = 37.7820;
-    var dummyLon = -122.4101;
-    let position = {};
-    position.coords = {};
-    position.coords.latitude = dummyLat + this.state.counter;
-    position.coords.longitude = dummyLon;
-    this.setPosition(position);
-    var reCount = this.state.counter + 0.0001;
-    this.setState({
-      counter: reCount,
-    });
-  }
+  // updateLocationState() {
+  //   // need this, every individual call to move
+  //   var dummyLat = 37.7820;
+  //   var dummyLon = -122.4101;
+  //   let position = {};
+  //   position.coords = {};
+  //   position.coords.latitude = dummyLat + this.state.counter;
+  //   position.coords.longitude = dummyLon;
+  //   this.setPosition(position);
+  //   var reCount = this.state.counter + 0.0001;
+  //   this.setState({
+  //     counter: reCount,
+  //   });
+  // }
 
   // socket request to the main server to update messages state based on location state
   // updateTreasureState() {
@@ -174,7 +173,7 @@ export default class App extends React.Component {
       <Authenticated
         username={this.state.username}
         dummyLat={Number(this.state.location.slice(0, 7))}
-        dummyLong={-122.4101}
+        dummyLong={Number(this.state.location.slice(7))}
         messages={this.state.messages}
         userLoggedIn={this.state.userLoggedIn}
         addMessageToChatRoom={this.addMessageToChatRoom}
