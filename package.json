@@ -4,9 +4,10 @@
   "description": "Google Maps Crumbs",
   "main": "index.js",
   "scripts": {
-    "server": "node ./server/server.js",
+    "heroku": "node ./server/server.js",
+    "server": "nodemon ./server/server.js",
     "client": "cd client && webpack --watch",
-    "postinstall": "webpack --config ./client/webpack.config.js",
+    "dev": "npm run server && npm run client",
     "start": "concurrently --kill-others \"npm run server\" \"npm run client\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
