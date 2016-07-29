@@ -2,7 +2,6 @@
 logs
 *.log
 npm-debug.log*
-server/db/config.js
 client/bundle.js
 
 # Runtime data
