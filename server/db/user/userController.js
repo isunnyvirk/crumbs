@@ -56,7 +56,7 @@ module.exports = {
             }
           }
           if (flag) {
-            userData.locations.push(newLoc);
+            userData.locations.push(locations);
             userData.points++;
             userData.markModified('locations', 'points');
             userData.save(() => {
