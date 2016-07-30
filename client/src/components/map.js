@@ -32,6 +32,16 @@ export default class OurMap extends React.Component {
         })
     }
 
+    var pageToRenderNow = 
+      Object.keys(this.props.locationsArray).map((location, index) => {
+        return (<OtherUsers 
+          key={location._id || index}
+          locationStyle={otherUserSpotStyle}
+          lat={location.substring(0,7)}
+          lng={location.substring(7,17)}
+        />);
+      })
+
     return (
       <GoogleMap
         bootstrapURLKeys={{ key: 'AIzaSyC5OhOfNkoT2WERe9fy7Odk8TEKYrCy3z4', language: 'en' }}
@@ -50,7 +60,7 @@ export default class OurMap extends React.Component {
           />);
         })}
         
-        {pageToRender}
+        {pageToRenderNow}
       </GoogleMap>
     );
   }

@@ -264,7 +264,7 @@ export default class App extends React.Component {
         score={this.state.score}
         hoard={this.state.hoard}
         userChests={this.state.userChests}
-        locationsArray={this.state.locationsArray}
+        locationsArray={this.state.otherUsers}
       />
       
     );

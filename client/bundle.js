@@ -21437,7 +21437,7 @@
 	        score: this.state.score,
 	        hoard: this.state.hoard,
 	        userChests: this.state.userChests,
-	        locationsArray: this.state.locationsArray
+	        locationsArray: this.state.otherUsers
 	      });
 
 	      var notLoggedIn = _react2.default.createElement(_Authentication.Authentication, {
@@ -24363,6 +24363,15 @@
 	        });
 	      }
 
+	      var pageToRenderNow = Object.keys(this.props.locationsArray).map(function (location, index) {
+	        return _react2.default.createElement(_otherUsers2.default, {
+	          key: location._id || index,
+	          locationStyle: _treasureStyle.otherUserSpotStyle,
+	          lat: location.substring(0, 7),
+	          lng: location.substring(7, 17)
+	        });
+	      });
+
 	      return _react2.default.createElement(
 	        _googleMapReact2.default,
 	        {
@@ -24381,7 +24390,7 @@
 	            chestStyle: chestStyle
 	          });
 	        }),
-	        pageToRender
+	        pageToRenderNow
 	      );
 	    }
 	  }]);
