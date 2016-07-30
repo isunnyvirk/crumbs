@@ -2,7 +2,8 @@ import React from 'react';
 import GoogleMap from 'google-map-react';
 import UserSpot from './userSpot.js';
 import TreasureChest from './TreasureChest.js';
-import { visitedChestStyle, newChestStyle } from './treasureStyle.js';
+import OtherUsers from './otherUsers.js';
+import { otherUserSpotStyle, visitedChestStyle, newChestStyle } from './treasureStyle.js';
 
 export default class OurMap extends React.Component {
   constructor(props) {
@@ -17,6 +18,19 @@ export default class OurMap extends React.Component {
 
   render() {
     // google map component from google-map-react
+    if (this.props.locationsArray.length >  0) {
+      var pageToRender =  
+        this.props.locationsArray.map((location, index) => {
+          console.log('the location is', location.location.substring());
+          return (<OtherUsers 
+            key={location._id || index}
+            locationStyle={otherUserSpotStyle}
+            lat={location.location.substring(0,7)}
+            lng={location.location.substring(7,17)}
+          />);
+        })
+    }
+
     return (
       <GoogleMap
         bootstrapURLKeys={{ key: 'AIzaSyC5OhOfNkoT2WERe9fy7Odk8TEKYrCy3z4', language: 'en' }}
@@ -34,6 +48,8 @@ export default class OurMap extends React.Component {
             chestStyle={chestStyle}
           />);
         })}
+        
+        {pageToRender}
       </GoogleMap>
     );
   }

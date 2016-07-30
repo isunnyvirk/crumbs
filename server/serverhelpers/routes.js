@@ -1,7 +1,7 @@
 const userController = require('../db/user/userController.js');
 const treasureChestController = require('../db/treasureChest/treasureChestController.js');
 
-module.exports = (socket) => {
+module.exports = (socket, io) => {
   socket.on('updateTreasureState', (location) => {
     treasureChestController.updateTreasureState(location, socket);
   });
@@ -28,5 +28,9 @@ module.exports = (socket) => {
 
   socket.on('getUserChests', (userObj) => {
     userController.getUserChests(userObj.username, socket);
+  });
+
+  socket.on('location', function (data) {
+    io.sockets.emit('location', data);
   });
 };

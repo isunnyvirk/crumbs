@@ -1,6 +1,7 @@
 import React from 'react';
 import { Authentication } from './Authentication';
 import { Authenticated } from './Authenticated';
+//import HashTable from 'hashtable'
 
 export default class App extends React.Component {
   constructor(props) {
@@ -21,6 +22,8 @@ export default class App extends React.Component {
       score: 0,
       treasureChestData: [],
       userChests: {},
+      locationsArray: [{location:'37.7883-122.4156'}],
+      otherUsers: {},
     };
   }
 
@@ -29,6 +32,8 @@ export default class App extends React.Component {
     this.getTreasureChests();
     this.getUserScore();
     this.getUserChests();
+
+
     // selects and executes which source to use for setting the location state of user.
   }
 
@@ -77,7 +82,26 @@ export default class App extends React.Component {
         localStorage.token = userDetails.username;
       }
     });
+
+    this.props.mainSocket.on('location', (userInfo) => {
+      if (userInfo.username !== this.state.username) {
+        var tempUsers = this.state.otherUsers;
+        tempUsers.username = userInfo.username; 
+        tempUsers.location = userInfo.location;
+        this.setState({
+          otherUsers: tempUsers
+        });
+
+        var tempLocationsArray = this.state.locationsArray;
+        tempLocationsArray.push(tempUsers);
+        this.setState({
+          locationsArray: tempLocationsArray
+        });
+      }
+    });
   }
+
+ 
 
   // advert() {
   //   var temp =this.state.score; 
@@ -86,31 +110,15 @@ export default class App extends React.Component {
   //   }, 3000)
   // }
 
-
-
-
-
-
   updateTreasureState() {
     if (this.state.treasureChestData.length) {
       for (var i = 0; i < this.state.treasureChestData.length; i++) {
-
-        // console.log('treasureChestData[i]: ', this.state.treasureChestData[i].location )
-        // console.log('state location: ', this.state.location )
 
         var chestLat = this.state.treasureChestData[i].location.slice(0, 6);
         var chestLong = this.state.treasureChestData[i].location.slice(7, 15);
         var stateLat = this.state.location.slice(0, 6);
         var stateLong = this.state.location.slice(7, 15);
 
-        // console.log('chest: ', chestLat, chestLong)
-        // console.log('state: ', stateLat, stateLong)
-        // console.log('chest: ', chestLat, chestLong, ' state: ', stateLat, stateLong)
-        // if ( ( stateLat > (chestLat-5) && stateLat < (chestLat+5) ) 
-        //    &&
-        //    ( stateLong > (chestLong-5) && stateLong < (chestLong+5) ) ) {
-        //   console.log('in range! Calling updateUserPoints')
-        // }
         if (chestLat === stateLat && chestLong === stateLong) {
           console.log('a match!')
           this.updateUserPoints();
@@ -121,8 +129,6 @@ export default class App extends React.Component {
         //   return;
         // } else {
 
-            // console.log('user     location: ', this.state.location);
-            // console.log('treasure location: ', this.state.treasureChestData[i].location);
           // if (this.state.location === this.state.treasureChestData[i].location) {
           //   console.log('shbooooooooooooooooooooooooooooooooooooooom!')
           // }
@@ -176,7 +182,29 @@ export default class App extends React.Component {
     this.setState({
       location,
     });
+
+    // var newLocState = React.addons.update(this.state, {
+    //   userInfo: {
+    //     location: { $set: location }
+    //   }
+    // }); 
+    // this.setState(newLocState);
+
+    // var newUserState = React.addons.update(this.state, {
+    //   userInfo: {
+    //     username: { $set: username }
+    //   }
+    // });
+    // this.setState(newUserState);
+    
     this.updateTreasureState();
+    this.sendLocation();
+  }
+
+  sendLocation() {
+    var userInfo = {username: this.state.username, location: this.state.location};
+    this.props.mainSocket.emit('location', userInfo);
+    setTimeout(this.sendLocation.bind(this), 10000);
   }
 
   getUserLocation() {
@@ -236,6 +264,7 @@ export default class App extends React.Component {
         score={this.state.score}
         hoard={this.state.hoard}
         userChests={this.state.userChests}
+        locationsArray={this.state.locationsArray}
       />
       
     );
@@ -255,3 +284,5 @@ export default class App extends React.Component {
     );
   }
 }
+
+

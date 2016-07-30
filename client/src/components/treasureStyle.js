@@ -66,3 +66,18 @@ export const userSpotStyle = {
   padding: 4,
   cursor: 'pointer',
 };
+
+export const otherUserSpotStyle = {
+  position: 'absolute',
+  width: '100%',
+  height: '100%',
+  left: -eSize / 2,
+  top: -eSize / 2,
+  borderRadius: eSize,
+  content: 'url(http://pix.iemoji.com/images/emoji/apple/ios-9/256/large-red-circle.png)',
+  textAlign: 'center',
+  fontSize: 16,
+  fontWeight: 'bold',
+  padding: 4,
+  cursor: 'pointer',
+};

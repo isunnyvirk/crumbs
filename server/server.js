@@ -13,7 +13,7 @@ middleware(app);
 
 // // Invoke routers function on app to provide access to all routes defined.
 const routers = require('./serverhelpers/routes.js');
-io.on('connection', (socket) => routers(socket));
+io.on('connection', (socket) => routers(socket, io));
 
 var port = process.env.PORT || 3000; 
 

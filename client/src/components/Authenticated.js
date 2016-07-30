@@ -15,7 +15,6 @@ export const Authenticated = (props) => {
 
   let ourMap;
   const mapStyle = { height: screen.height - (0.05 * screen.height) };
-
   // render the map in all cases
   const googleMap = (
     <div className="map-wrapper mappy" style={mapStyle}>
@@ -26,6 +25,7 @@ export const Authenticated = (props) => {
         dummyLat={props.dummyLat}
         dummyLong={props.dummyLong}
         userChests={props.userChests}
+        locationsArray={props.locationsArray}
       />
     </div>);
 
