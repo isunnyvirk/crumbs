@@ -24344,7 +24344,9 @@
 	      // />);
 
 	      var pageToRenderNow = Object.keys(this.props.locationsArray).map(function (user, index) {
-	        console.log('this is', _this2.props.locationArray[user]);
+	        if (_this2.props.locationArray[user] !== undefined) {
+	          console.log('this is', _this2.props.locationArray[user]);
+	        }
 	      });
 
 	      return _react2.default.createElement(

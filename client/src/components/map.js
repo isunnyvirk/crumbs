@@ -39,7 +39,7 @@ export default class OurMap extends React.Component {
 
     var pageToRenderNow = 
       Object.keys(this.props.locationsArray).map((user, index) => {
-        if (this.props.locationArray[user] !=== undefined){
+        if (this.props.locationArray[user] !== undefined){
          console.log('this is',this.props.locationArray[user]);
         }
       })
