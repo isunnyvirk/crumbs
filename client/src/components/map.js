@@ -32,19 +32,15 @@ export default class OurMap extends React.Component {
         })
     }
 
-    var pageToRenderNow = 
-      Object.keys(this.props.locationsArray).map((user, index) => {
-        console.log('the user is', user);
-        console.log('what i want is', this.props.locationsArray[user])
-
-
-        return (<OtherUsers 
-          //key={this.props.locationsArray[user]._id || index}
-          // locationStyle={otherUserSpotStyle}
-          // lat={this.props.locationsArray[user].substring(0,7)}
-          // lng={this.props.locationsArray[user].substring(7,17)}
-        />);
-      })
+    // var pageToRenderNow = 
+    //   Object.keys(this.props.locationsArray).map((user, index) => {
+    //     return (<OtherUsers 
+    //       key={this.props.locationsArray[user]._id || index}
+    //       locationStyle={otherUserSpotStyle}
+    //       lat={this.props.locationsArray[user].substring(0,7)}
+    //       lng={this.props.locationsArray[user].substring(7,17)}
+    //     />);
+    //   })
 
     return (
       <GoogleMap
