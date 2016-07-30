@@ -4,6 +4,7 @@ import UserSpot from './userSpot.js';
 import TreasureChest from './TreasureChest.js';
 import OtherUsers from './otherUsers.js';
 import { otherUserSpotStyle, visitedChestStyle, newChestStyle } from './treasureStyle.js';
+import Homebase from './Homebase.js';
 
 export default class OurMap extends React.Component {
   constructor(props) {
@@ -17,30 +18,29 @@ export default class OurMap extends React.Component {
   }
 
   render() {
-    console.log('tje loc',this.props.locationsArray)
-    // google map component from google-map-react
 
-    if (this.props.locationsArray.length >  0) {
-      var pageToRender =  
-        this.props.locationsArray.map((location, index) => {
-          return (<OtherUsers 
-            key={location._id || index}
-            locationStyle={otherUserSpotStyle}
-            lat={location.substring(0,7)}
-            lng={location.substring(7,17)}
-          />);
-        })
-    }
+    // if (this.props.locationsArray.length >  0) {
+    //   var pageToRender =  
+    //     this.props.locationsArray.map((location, index) => {
+    //       return (<OtherUsers 
+    //         key={location._id || index}
+    //         locationStyle={otherUserSpotStyle}
+    //         lat={location.substring(0,7)}
+    //         lng={location.substring(7,17)}
+    //       />);
+    //     })
+    // }
+        // return (<OtherUsers 
+        //   key={this.props.locationsArray[user]._id || index}
+        //   locationStyle={otherUserSpotStyle}
+        //   lat={this.props.locationsArray[user].substring(0,7)}
+        //   lng={this.props.locationsArray[user].substring(7,17)}
+        // />);
 
-    // var pageToRenderNow = 
-    //   Object.keys(this.props.locationsArray).map((user, index) => {
-    //     return (<OtherUsers 
-    //       key={this.props.locationsArray[user]._id || index}
-    //       locationStyle={otherUserSpotStyle}
-    //       lat={this.props.locationsArray[user].substring(0,7)}
-    //       lng={this.props.locationsArray[user].substring(7,17)}
-    //     />);
-    //   })
+    var pageToRenderNow = 
+      Object.keys(this.props.locationsArray).map((user, index) => {
+        console.log('this is',this.props.locationArray[user]);
+      })
 
     return (
       <GoogleMap
@@ -49,18 +49,21 @@ export default class OurMap extends React.Component {
         center={this.props.center} zoom={this.props.zoom}
       >
         <UserSpot user={'Davey'} lat={this.props.dummyLat} lng={this.props.dummyLong} />
-        {this.props.treasureChestData.map((treasureChest, index) => {
-          const chestStyle = treasureChest.location in this.props.userChests ? visitedChestStyle : newChestStyle;
+        <Homebase
+          lat={this.props.homebase.substring(0, 7)}
+          lng={this.props.homebase.substring(7, 17)}
+          bankedCoins={this.props.bankedCoins}
+        />
+        {this.props.coinsOnMap.map((coin, index) => {
+          // console.log('davey walking: ', this.props.dummyLat, this.props.dummyLong)
+          // console.log(coin);
           return (<TreasureChest
-            key={treasureChest._id || index}
-            lat={treasureChest.location.substring(0, 7)}
-            lng={treasureChest.location.substring(7, 17)}
-            treasureChestData={treasureChest}
-            chestStyle={chestStyle}
+            key={coin._id || index}
+            lat={coin.substring(0, 7)}
+            lng={coin.substring(7, 17)}    
           />);
         })}
         
-        {pageToRenderNow}
       </GoogleMap>
     );
   }

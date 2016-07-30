@@ -21,11 +21,13 @@ export const Authenticated = (props) => {
       <OurMap
         center={props.center}
         zoom={props.zoom}
-        treasureChestData={props.treasureChestData}
+        coinsOnMap={props.coinsOnMap}
         dummyLat={props.dummyLat}
         dummyLong={props.dummyLong}
         userChests={props.userChests}
         locationsArray={props.locationsArray}
+        bankedCoins={props.bankedCoins}
+        homebase={props.homebase}
       />
     </div>);
 
@@ -36,7 +38,7 @@ export const Authenticated = (props) => {
 
   return (
     <div>
-      <MyNav score={props.score} logOutUser={props.logOutUser} username={props.username} />
+      <MyNav bankedCoins={props.bankedCoins} carriedCoins={props.carriedCoins} logOutUser={props.logOutUser} username={props.username} />
       {ourMap}
     </div>
   );

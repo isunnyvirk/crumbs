@@ -58,13 +58,15 @@
 
 	var _App2 = _interopRequireDefault(_App);
 
-	var _socket = __webpack_require__(284);
+	var _socket = __webpack_require__(285);
 
 	var _socket2 = _interopRequireDefault(_socket);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	var mainSocket = (0, _socket2.default)();
+	//import io from 'socket.io/node_modules/socket.io-client';
+
 
 	_reactDom2.default.render(_react2.default.createElement(_App2.default, { mainSocket: mainSocket }), document.getElementById('app'));
 
@@ -21139,22 +21141,18 @@
 	    var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(App).call(this, props));
 
 	    _this.state = {
-	      messages: null,
-	      // location: '37.78352-122.40962',
-	      location: '37.7821-122.4090',
+	      location: '',
 	      userLoggedIn: !!localStorage.token,
 	      username: localStorage.token,
 	      center: { lat: 37.7821, lng: -122.4090 },
 	      zoom: 17,
-	      // homebase: '37.7837-122.4090',
-	      homebase: '37.7851-122.4101',
-	      hoard: 0,
-	      counter: 0.0001,
-	      score: 0,
-	      treasureChestData: [],
-	      userChests: {},
+	      otherUsers: {},
 	      locationsArray: [],
-	      otherUsers: {}
+	      counter: 0,
+	      bankedCoins: [], // all banked coins added up
+	      carriedCoins: [], // all coins currently carried not in bank
+	      coinsOnMap: [], // all locations on map where there are coins
+	      homebase: '37.7837-122.4090'
 	    };
 	    return _this;
 	  }
@@ -21163,38 +21161,42 @@
 	    key: 'componentWillMount',
 	    value: function componentWillMount() {
 	      this.logOutUser = this.logOutUser.bind(this);
-	      this.getTreasureChests();
-	      this.getUserScore();
-	      this.getUserChests();
-
-	      // selects and executes which source to use for setting the location state of user.
+	      this.getBankedCoins();
+	      this.getCoinsOnMap();
 	    }
 	  }, {
 	    key: 'componentDidMount',
 	    value: function componentDidMount() {
 	      var _this2 = this;
 
-	      // const locationSource = this.getUserLocation.bind(this);
-	      // setInterval(locationSource, 7000);
-	      this.getUserLocation();
+	      var locationSource = this.getUserLocation.bind(this);
+	      locationSource();
+	      //const locationSource = this.getDaveLocation.bind(this);
+	      //setInterval(locationSource, 1000);
 
-	      this.props.mainSocket.on('getUserScore', function (score) {
+	      this.props.mainSocket.on('getBankedCoins', function (myCoins) {
+	        console.log('sending off for coins');
 	        _this2.setState({
-	          score: score
+	          bankedCoins: myCoins
 	        });
 	      });
 
-	      this.props.mainSocket.on('getUserChests', function (chests) {
-	        var chestObj = {};
+	      //this is transferring all coins from user db to state
+	      this.props.mainSocket.on('getCoinsOnMap', function (setCoins) {
+	        // console.log('getting coinsOnMap back', setCoins);
+	        var that = _this2;
+	        var filteredCoinsOnMap = [];
 	        var _iteratorNormalCompletion = true;
 	        var _didIteratorError = false;
 	        var _iteratorError = undefined;
 
 	        try {
-	          for (var _iterator = chests[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-	            var chest = _step.value;
+	          for (var _iterator = setCoins[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+	            var coin = _step.value;
 
-	            chestObj[chest] = true;
+	            if (_this2.state.bankedCoins.indexOf(coin.location) < 0) {
+	              filteredCoinsOnMap.push(coin.location);
+	            }
 	          }
 	        } catch (err) {
 	          _didIteratorError = true;
@@ -21212,23 +21214,8 @@
 	        }
 
 	        _this2.setState({
-	          userChests: chestObj
+	          coinsOnMap: filteredCoinsOnMap
 	        });
-	        console.log('UserChests: ', _this2.state.userChests);
-	      });
-
-	      this.props.mainSocket.on('getTreasureChests', function (chests) {
-	        _this2.setState({ treasureChestData: chests });
-	      });
-
-	      this.props.mainSocket.on('updateUserPoints', function (results) {
-	        console.log('points will update? - answer: ', results);
-	        if (results) {
-	          _this2.state.score++;
-	          console.log('getting user chests');
-	          _this2.getUserChests();
-	          // this.advert();
-	        }
 	      });
 
 	      this.props.mainSocket.on('Authentication', function (userDetails) {
@@ -21251,95 +21238,93 @@
 	          });
 
 	          var tempLocationsArray = _this2.state.locationsArray;
-	          tempLocationsArray.push(tempUsers.location);
+	          tempLocationsArray.push(tempUsers);
 	          _this2.setState({
 	            locationsArray: tempLocationsArray
 	          });
 	        }
 	      });
 	    }
-
-	    // advert() {
-	    //   var temp =this.state.score; 
-	    //   setTimeout(function() {
-	    //     alert(temp + " whole dollar? Subway's ham sandwich happens to be JUST that amount!", <br />, "TODAY ONLY!")
-	    //   }, 3000)
-	    // }
-
 	  }, {
-	    key: 'updateTreasureState',
-	    value: function updateTreasureState() {
-	      if (this.state.treasureChestData.length) {
-	        for (var i = 0; i < this.state.treasureChestData.length; i++) {
+	    key: 'updateCarriedCoins',
+	    value: function updateCarriedCoins(location) {
+	      //updating carried coins with fixed3 location
+	      this.setState({
+	        carriedCoins: this.state.carriedCoins.concat([location])
+	      });
+	      //iterate through coinsOnMap and remove one that's been picked up
+	      for (var i = 0; i < this.state.coinsOnMap.length; i++) {
+	        //capture lat and long for fixed4-coinOnMap
+	        var tempLat = this.state.coinsOnMap[i].substring(0, 6);
+	        var tempLong = this.state.coinsOnMap[i].substring(7, 15);
+	        //capture lat and long for fixed3-current location
+	        var currLat = location.substring(0, 6);
+	        var currLong = location.substring(6, 14);
 
-	          var chestLat = this.state.treasureChestData[i].location.slice(0, 6);
-	          var chestLong = this.state.treasureChestData[i].location.slice(7, 15);
-	          var stateLat = this.state.location.slice(0, 6);
-	          var stateLong = this.state.location.slice(7, 15);
-
-	          if (chestLat === stateLat && chestLong === stateLong) {
-	            console.log('a match!');
-	            this.updateUserPoints();
-	          }
-
-	          // if (this.state.location === this.state.homebase) {
-	          //   this.bankYourMoney();
-	          //   return;
-	          // } else {
-
-	          // if (this.state.location === this.state.treasureChestData[i].location) {
-	          //   console.log('shbooooooooooooooooooooooooooooooooooooooom!')
-	          // }
-	          // }
+	        // console.log('coin location: ', tempLat, tempLong)
+	        // console.log('curr location: ', currLat, currLong)
+	        if (tempLat === currLat && tempLong === currLong) {
+	          var firstHalf = this.state.coinsOnMap.slice(0, i);
+	          var secondHalf = this.state.coinsOnMap.slice(i + 1);
+	          var newCoinsOnMap = firstHalf.concat(secondHalf);
+	          this.setState({
+	            coinsOnMap: newCoinsOnMap
+	          });
+	          // console.log('current coinsOnMap: ' + this.state.coinsOnMap)
+	          // console.log('updated carriedCoins: ', this.state.carriedCoins)
+	          // console.log('updated bankedCoins: ', this.state.bankedCoins)
 	        }
 	      }
 	    }
 	  }, {
-	    key: 'bankYourMoney',
-	    value: function bankYourMoney() {
-	      this.setState({
-	        hoard: this.state.hoard = this.state.score,
-	        score: 0
-	      });
-	      //if score is greater than X, do something/change something
-	      console.log('Your new hoard balance is: ', this.state.hoard);
-	    }
-	  }, {
-	    key: 'stealYourMoney',
-	    value: function stealYourMoney() {
-	      this.setState({
-	        score: 0
-	      });
-	    }
-	  }, {
-	    key: 'getUserScore',
-	    value: function getUserScore() {
-	      this.props.mainSocket.emit('getUserScore', { username: this.state.username });
-	    }
-	  }, {
-	    key: 'getUserChests',
-	    value: function getUserChests() {
-	      this.props.mainSocket.emit('getUserChests', { username: this.state.username });
-	    }
-	  }, {
-	    key: 'getTreasureChests',
-	    value: function getTreasureChests() {
-	      this.props.mainSocket.emit('getTreasureChests');
-	    }
-	  }, {
-	    key: 'updateUserPoints',
-	    value: function updateUserPoints() {
-
-	      //saving treasurechest as a fixed(3)
+	    key: 'updateTreasureState',
+	    value: function updateTreasureState() {
+	      //capture location in state
 	      var stateLat = this.state.location.substring(0, 6);
 	      var stateLong = this.state.location.substring(7, 15);
-	      var newLocation = String(stateLat) + String(stateLong);
-	      var userObj = { username: this.state.username, location: newLocation };
-	      this.props.mainSocket.emit('updateUserPoints', userObj);
-	    }
-	    // will continually update our location state with our new position
-	    // returned from navigator.geolocation and check if we are in chat room
+	      if (this.state.coinsOnMap.length) {
+	        for (var i = 0; i < this.state.coinsOnMap.length; i++) {
+	          var chestLat = this.state.coinsOnMap[i].substring(0, 6);
+	          var chestLong = this.state.coinsOnMap[i].substring(7, 15);
 
+	          if (chestLat === stateLat && chestLong === stateLong) {
+	            console.log('Treasure!');
+	            var truncLocation = String(stateLat) + String(stateLong);
+	            this.updateCarriedCoins(truncLocation);
+	          }
+	        }
+	      }
+	      console.log(stateLat + ' ' + stateLong);
+	      if ('37.783' === stateLat && '-122.409' === stateLong) {
+	        if (this.state.carriedCoins.length > 0) {
+	          console.log('Banking: ', this.state.carriedCoins);
+	          this.bankCoins();
+	        } else {
+	          console.log('nada to bank, loser');
+	        }
+	      }
+	    }
+	  }, {
+	    key: 'getBankedCoins',
+	    value: function getBankedCoins() {
+	      this.props.mainSocket.emit('getBankedCoins', { username: this.state.username });
+	    }
+	  }, {
+	    key: 'getCoinsOnMap',
+	    value: function getCoinsOnMap() {
+	      this.props.mainSocket.emit('getCoinsOnMap');
+	    }
+	  }, {
+	    key: 'bankCoins',
+	    value: function bankCoins() {
+	      // console.log('banking!')
+	      var newObj = { username: this.state.username, coins: this.state.carriedCoins };
+	      this.props.mainSocket.emit('updateBankedCoins', newObj);
+	      this.setState({
+	        bankedCoins: this.state.bankedCoins.concat(this.state.carriedCoins),
+	        carriedCoins: []
+	      });
+	    }
 	  }, {
 	    key: 'setPosition',
 	    value: function setPosition(position) {
@@ -21349,21 +21334,6 @@
 	      this.setState({
 	        location: location
 	      });
-
-	      // var newLocState = React.addons.update(this.state, {
-	      //   userInfo: {
-	      //     location: { $set: location }
-	      //   }
-	      // }); 
-	      // this.setState(newLocState);
-
-	      // var newUserState = React.addons.update(this.state, {
-	      //   userInfo: {
-	      //     username: { $set: username }
-	      //   }
-	      // });
-	      // this.setState(newUserState);
-
 	      this.updateTreasureState();
 	      this.sendLocation();
 	    }
@@ -21388,28 +21358,27 @@
 	        }, { enableHighAccuracy: true });
 	      }
 	    }
+	  }, {
+	    key: 'getDaveLocation',
+	    value: function getDaveLocation() {
 
-	    // will watch our location and frequently call set position
-	    // updateLocationState() {
-	    //   // need this, every individual call to move
-	    //   var dummyLat = 37.7820;
-	    //   var dummyLon = -122.4101;
-	    //   let position = {};
-	    //   position.coords = {};
-	    //   position.coords.latitude = dummyLat + this.state.counter;
-	    //   position.coords.longitude = dummyLon;
-	    //   this.setPosition(position);
-	    //   var reCount = this.state.counter + 0.0001;
-	    //   this.setState({
-	    //     counter: reCount,
-	    //   });
-	    // }
+	      var locs = ['37.7809-122.4120', '37.7814-122.4119', '37.7819-122.4116', '37.7824-122.4111', '37.7824-122.4107', '37.7824-122.4105', '37.7829-122.4101', '37.7829-122.4101', '37.7833-122.4098', '37.7834-122.4096', '37.7836-122.4095', '37.7839-122.4095', '37.7841-122.4094', '37.7842-122.4093', '37.7850-122.4093', '37.7847-122.4093', '37.7843-122.4092', '37.7842-122.4092', '37.7840-122.4092', '37.7839-122.4091', '37.7837-122.4090', '37.7837-122.4090', '37.7839-122.4084', '37.7841-122.4080', '37.7842-122.4079', '37.7843-122.4078', '37.7849-122.4075', '37.7849-122.4075', '37.7843-122.4076', '37.7838-122.4077', '37.7835-122.4078', '37.7834-122.4078', '37.7829-122.4079', '37.7829-122.4079', '37.7831-122.4080', '37.7833-122.4082', '37.7834-122.4083', '37.7835-122.4085', '37.7836-122.4090', '37.7834-122.4092', '37.7838-122.4092'];
+	      if (this.state.counter > 40) {
+	        console.log('end of loop');
+	        this.setState({
+	          location: locs[40]
+	        });
+	      } else {
+	        this.setState({
+	          location: locs[this.state.counter]
+	        });
+	        this.setState({
+	          counter: this.state.counter + 1
+	        });
+	      }
 
-	    // socket request to the main server to update messages state based on location state
-	    // updateTreasureState() {
-	    //   this.props.mainSocket.emit('updateTreasureState', this.state.location);
-	    // }
-
+	      this.updateTreasureState();
+	    }
 	  }, {
 	    key: 'logOutUser',
 	    value: function logOutUser(e) {
@@ -21426,18 +21395,15 @@
 	        username: this.state.username,
 	        dummyLat: Number(this.state.location.slice(0, 7)),
 	        dummyLong: Number(this.state.location.slice(7)),
-	        messages: this.state.messages,
 	        userLoggedIn: this.state.userLoggedIn,
-	        addMessageToChatRoom: this.addMessageToChatRoom,
-	        createChatRoom: this.createChatRoom,
 	        logOutUser: this.logOutUser,
 	        zoom: this.state.zoom,
 	        center: this.state.center,
-	        treasureChestData: this.state.treasureChestData,
-	        score: this.state.score,
-	        hoard: this.state.hoard,
-	        userChests: this.state.userChests,
-	        locationsArray: this.state.otherUsers
+	        locationsArray: this.state.otherUsers,
+	        coinsOnMap: this.state.coinsOnMap,
+	        carriedCoins: this.state.carriedCoins,
+	        bankedCoins: this.state.bankedCoins,
+	        homebase: this.state.homebase
 	      });
 
 	      var notLoggedIn = _react2.default.createElement(_Authentication.Authentication, {
@@ -21577,8 +21543,39 @@
 
 	      return _react2.default.createElement(
 	        'div',
-	        null,
-	        pageToRender
+	        { className: 'homepage-hero-module' },
+	        _react2.default.createElement(
+	          'div',
+	          { className: 'video-container' },
+	          _react2.default.createElement('div', { className: 'filter' }),
+	          _react2.default.createElement(
+	            'video',
+	            { autoPlay: true, loop: true, className: 'fillWidth' },
+	            _react2.default.createElement('source', { src: '../resources/Lonely-Chair/MP4/Lonely-Chair.mp4', type: 'video/mp4' }),
+	            'Your browser does not support the video tag. I suggest you upgrade your browser.',
+	            _react2.default.createElement('source', { src: '../resources/Lonely-Chair/WEBM/Lonely-Chair.webm', type: 'video/webm' }),
+	            'Your browser does not support the video tag. I suggest you upgrade your browser.'
+	          ),
+	          _react2.default.createElement(
+	            'div',
+	            { className: 'poster hidden' },
+	            _react2.default.createElement('img', { src: '../resources/Lonely-Chair/Snapshots/Lonely-Chair.jpg', alt: '' })
+	          )
+	        ),
+	        _react2.default.createElement(
+	          'div',
+	          { className: 'headerContainer' },
+	          _react2.default.createElement(
+	            'h1',
+	            { className: 'hoarders' },
+	            'Hoarders'
+	          )
+	        ),
+	        _react2.default.createElement(
+	          'div',
+	          { className: 'loginBox' },
+	          pageToRender
+	        )
 	      );
 	    }
 	  }]);
@@ -21634,13 +21631,13 @@
 	var Login = exports.Login = function Login(props) {
 	  return _react2.default.createElement(
 	    _Grid2.default,
-	    null,
+	    { className: 'LoginContainer' },
 	    _react2.default.createElement(
 	      _Row2.default,
 	      null,
 	      _react2.default.createElement(
 	        _Col2.default,
-	        { xs: 7, sm: 5, md: 4, className: 'authComponent' },
+	        { xs: 7, sm: 7, md: 7, className: 'authComponent' },
 	        _react2.default.createElement(
 	          'h1',
 	          { className: 'welcome' },
@@ -21656,12 +21653,13 @@
 	        null,
 	        _react2.default.createElement(
 	          _Col2.default,
-	          { xs: 7, sm: 5, md: 4, className: 'authComponent' },
+	          { xs: 7, sm: 7, md: 7, className: 'authComponent' },
 	          _react2.default.createElement(_FormControl2.default, {
 	            onChange: props.userChange,
 	            value: props.usernameText,
 	            type: 'text',
-	            placeholder: 'Username'
+	            placeholder: 'Username',
+	            className: 'transparent'
 	          })
 	        )
 	      ),
@@ -21670,12 +21668,13 @@
 	        { controlId: 'formHorizontalPassword' },
 	        _react2.default.createElement(
 	          _Col2.default,
-	          { xs: 7, sm: 5, md: 4, className: 'authComponent' },
+	          { xs: 7, sm: 7, md: 7, className: 'authComponent' },
 	          _react2.default.createElement(_FormControl2.default, {
 	            onChange: props.passwordChange,
 	            value: props.passwordText,
 	            type: 'password',
-	            placeholder: 'Password'
+	            placeholder: 'Password',
+	            className: 'transparent'
 	          })
 	        )
 	      ),
@@ -21684,7 +21683,7 @@
 	        null,
 	        _react2.default.createElement(
 	          _Col2.default,
-	          { xs: 7, sm: 5, md: 4, className: 'authComponent' },
+	          { xs: 7, sm: 7, md: 7, className: 'authComponent' },
 	          _react2.default.createElement(
 	            _Button2.default,
 	            {
@@ -21697,7 +21696,7 @@
 	          ),
 	          _react2.default.createElement('br', null),
 	          _react2.default.createElement(
-	            'span',
+	            'div',
 	            { className: 'signing' },
 	            'Don\'t have an account yet?',
 	            _react2.default.createElement(
@@ -24141,13 +24140,13 @@
 	var SignUp = exports.SignUp = function SignUp(props) {
 	  return _react2.default.createElement(
 	    _Grid2.default,
-	    null,
+	    { className: 'LoginContainer' },
 	    _react2.default.createElement(
 	      _Row2.default,
 	      null,
 	      _react2.default.createElement(
 	        _Col2.default,
-	        { xs: 7, sm: 5, md: 4, className: 'authComponent' },
+	        { xs: 7, sm: 7, md: 7, className: 'authComponent' },
 	        _react2.default.createElement(
 	          'h1',
 	          { className: 'welcome' },
@@ -24163,12 +24162,13 @@
 	        null,
 	        _react2.default.createElement(
 	          _Col2.default,
-	          { xs: 7, sm: 5, md: 4, className: 'authComponent' },
+	          { xs: 7, sm: 7, md: 7, className: 'authComponent' },
 	          _react2.default.createElement(_FormControl2.default, {
 	            onChange: props.userChange,
 	            value: props.usernameText,
 	            type: 'text',
-	            placeholder: 'Username'
+	            placeholder: 'Username',
+	            className: 'transparent'
 	          })
 	        )
 	      ),
@@ -24177,12 +24177,13 @@
 	        { controlId: 'formHorizontalPassword' },
 	        _react2.default.createElement(
 	          _Col2.default,
-	          { xs: 7, sm: 5, md: 4, className: 'authComponent' },
+	          { xs: 7, sm: 7, md: 7, className: 'authComponent' },
 	          _react2.default.createElement(_FormControl2.default, {
 	            onChange: props.passwordChange,
 	            value: props.passwordText,
 	            type: 'password',
-	            placeholder: 'Password'
+	            placeholder: 'Password',
+	            className: 'transparent'
 	          })
 	        )
 	      ),
@@ -24191,7 +24192,7 @@
 	        null,
 	        _react2.default.createElement(
 	          _Col2.default,
-	          { xs: 7, sm: 5, md: 4, className: 'authComponent' },
+	          { xs: 7, sm: 7, md: 7, className: 'authComponent' },
 	          _react2.default.createElement(
 	            _Button2.default,
 	            {
@@ -24204,7 +24205,7 @@
 	          ),
 	          _react2.default.createElement('br', null),
 	          _react2.default.createElement(
-	            'span',
+	            'div',
 	            { className: 'signing' },
 	            'Already have an account?',
 	            _react2.default.createElement(
@@ -24238,7 +24239,7 @@
 
 	var _map2 = _interopRequireDefault(_map);
 
-	var _NavBar = __webpack_require__(256);
+	var _NavBar = __webpack_require__(257);
 
 	var _NavBar2 = _interopRequireDefault(_NavBar);
 
@@ -24264,11 +24265,13 @@
 	    _react2.default.createElement(_map2.default, {
 	      center: props.center,
 	      zoom: props.zoom,
-	      treasureChestData: props.treasureChestData,
+	      coinsOnMap: props.coinsOnMap,
 	      dummyLat: props.dummyLat,
 	      dummyLong: props.dummyLong,
 	      userChests: props.userChests,
-	      locationsArray: props.locationsArray
+	      locationsArray: props.locationsArray,
+	      bankedCoins: props.bankedCoins,
+	      homebase: props.homebase
 	    })
 	  );
 
@@ -24281,7 +24284,7 @@
 	  return _react2.default.createElement(
 	    'div',
 	    null,
-	    _react2.default.createElement(_NavBar2.default, { score: props.score, logOutUser: props.logOutUser, username: props.username }),
+	    _react2.default.createElement(_NavBar2.default, { bankedCoins: props.bankedCoins, carriedCoins: props.carriedCoins, logOutUser: props.logOutUser, username: props.username }),
 	    ourMap
 	  );
 	};
@@ -24320,6 +24323,10 @@
 
 	var _treasureStyle = __webpack_require__(253);
 
+	var _Homebase = __webpack_require__(256);
+
+	var _Homebase2 = _interopRequireDefault(_Homebase);
+
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -24349,27 +24356,26 @@
 	    value: function render() {
 	      var _this2 = this;
 
-	      console.log('tje loc', this.props.locationsArray);
-	      // google map component from google-map-react
-
-	      if (this.props.locationsArray.length > 0) {
-	        var pageToRender = this.props.locationsArray.map(function (location, index) {
-	          return _react2.default.createElement(_otherUsers2.default, {
-	            key: location._id || index,
-	            locationStyle: _treasureStyle.otherUserSpotStyle,
-	            lat: location.substring(0, 7),
-	            lng: location.substring(7, 17)
-	          });
-	        });
-	      }
+	      // if (this.props.locationsArray.length >  0) {
+	      //   var pageToRender =  
+	      //     this.props.locationsArray.map((location, index) => {
+	      //       return (<OtherUsers 
+	      //         key={location._id || index}
+	      //         locationStyle={otherUserSpotStyle}
+	      //         lat={location.substring(0,7)}
+	      //         lng={location.substring(7,17)}
+	      //       />);
+	      //     })
+	      // }
+	      // return (<OtherUsers 
+	      //   key={this.props.locationsArray[user]._id || index}
+	      //   locationStyle={otherUserSpotStyle}
+	      //   lat={this.props.locationsArray[user].substring(0,7)}
+	      //   lng={this.props.locationsArray[user].substring(7,17)}
+	      // />);
 
 	      var pageToRenderNow = Object.keys(this.props.locationsArray).map(function (user, index) {
-	        return _react2.default.createElement(_otherUsers2.default, {
-	          key: _this2.props.locationsArray[user]._id || index,
-	          locationStyle: _treasureStyle.otherUserSpotStyle,
-	          lat: _this2.props.locationsArray[user].substring(0, 7),
-	          lng: _this2.props.locationsArray[user].substring(7, 17)
-	        });
+	        console.log('this is', _this2.props.locationArray[user]);
 	      });
 
 	      return _react2.default.createElement(
@@ -24380,17 +24386,20 @@
 	          center: this.props.center, zoom: this.props.zoom
 	        },
 	        _react2.default.createElement(_userSpot2.default, { user: 'Davey', lat: this.props.dummyLat, lng: this.props.dummyLong }),
-	        this.props.treasureChestData.map(function (treasureChest, index) {
-	          var chestStyle = treasureChest.location in _this2.props.userChests ? _treasureStyle.visitedChestStyle : _treasureStyle.newChestStyle;
-	          return _react2.default.createElement(_TreasureChest2.default, {
-	            key: treasureChest._id || index,
-	            lat: treasureChest.location.substring(0, 7),
-	            lng: treasureChest.location.substring(7, 17),
-	            treasureChestData: treasureChest,
-	            chestStyle: chestStyle
-	          });
+	        _react2.default.createElement(_Homebase2.default, {
+	          lat: this.props.homebase.substring(0, 7),
+	          lng: this.props.homebase.substring(7, 17),
+	          bankedCoins: this.props.bankedCoins
 	        }),
-	        pageToRenderNow
+	        this.props.coinsOnMap.map(function (coin, index) {
+	          // console.log('davey walking: ', this.props.dummyLat, this.props.dummyLong)
+	          // console.log(coin);
+	          return _react2.default.createElement(_TreasureChest2.default, {
+	            key: coin._id || index,
+	            lat: coin.substring(0, 7),
+	            lng: coin.substring(7, 17)
+	          });
+	        })
 	      );
 	    }
 	  }]);
@@ -27179,12 +27188,10 @@
 	  _createClass(UserSpot, [{
 	    key: 'render',
 	    value: function render() {
-	      var style = _treasureStyle.userSpotStyle;
-
 	      return _react2.default.createElement(
 	        'div',
 	        { style: _treasureStyle.outerDivStyle },
-	        _react2.default.createElement('div', { style: style })
+	        _react2.default.createElement('div', { style: _treasureStyle.userSpotStyle })
 	      );
 	    }
 	  }]);
@@ -27204,7 +27211,8 @@
 	  value: true
 	});
 	// size of the outer div for skull icons
-	var eSize = exports.eSize = 30;
+	var eSize = exports.eSize = 35;
+	var homebaseSize = exports.homebaseSize = 70;
 
 	var newChestStyle = exports.newChestStyle = {
 	  position: 'absolute',
@@ -27213,7 +27221,7 @@
 	  left: -eSize / 2,
 	  top: -eSize / 2,
 	  borderRadius: eSize,
-	  content: 'url(../images/greenChest.png)',
+	  content: 'url(http://orig06.deviantart.net/712c/f/2010/236/2/e/spinning_coin___animation_by_mantastic001.gif)',
 	  textAlign: 'center',
 	  fontSize: 16,
 	  fontWeight: 'bold',
@@ -27228,7 +27236,7 @@
 	  left: -eSize / 2,
 	  top: -eSize / 2,
 	  borderRadius: eSize,
-	  content: 'url(../images/grayChest.png)',
+	  content: 'url(../resources/grayChest.png)',
 	  textAlign: 'center',
 	  fontSize: 16,
 	  fontWeight: 'bold',
@@ -27236,25 +27244,33 @@
 	  cursor: 'pointer'
 	};
 
-	var treasureChestHoverStyle = exports.treasureChestHoverStyle = {
-	  position: 'absolute',
-	  width: '100%',
-	  height: '100%',
-	  left: -eSize / 2,
-	  top: -eSize / 2,
-	  borderRadius: eSize,
-	  content: 'url(https://i.imgur.com/foXmE7c.png)',
-	  textAlign: 'center',
-	  fontSize: 16,
-	  fontWeight: 'bold',
-	  padding: 4,
-	  cursor: 'pointer'
+	var homebaseStyle = exports.homebaseStyle = function homebaseStyle(coins) {
+	  return {
+	    position: 'absolute',
+	    width: '100%',
+	    height: '100%',
+	    left: -homebaseSize / 2,
+	    top: -homebaseSize / 2,
+	    borderRadius: homebaseSize,
+	    content: 'url(../resources/coinBag/money-bag-' + coins + '.png)',
+	    textAlign: 'center',
+	    fontSize: 16,
+	    fontWeight: 'bold',
+	    padding: 4,
+	    cursor: 'pointer'
+	  };
 	};
 
 	var outerDivStyle = exports.outerDivStyle = {
 	  position: 'absolute',
 	  width: eSize,
 	  height: eSize
+	};
+
+	var outerHomebaseDivStyle = exports.outerHomebaseDivStyle = {
+	  position: 'absolute',
+	  width: homebaseSize,
+	  height: homebaseSize
 	};
 
 	var userSpotStyle = exports.userSpotStyle = {
@@ -27313,31 +27329,31 @@
 
 	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-	var SkateSpot = function (_React$Component) {
-	  _inherits(SkateSpot, _React$Component);
+	var Coin = function (_React$Component) {
+	  _inherits(Coin, _React$Component);
 
-	  function SkateSpot(props) {
-	    _classCallCheck(this, SkateSpot);
+	  function Coin(props) {
+	    _classCallCheck(this, Coin);
 
-	    return _possibleConstructorReturn(this, Object.getPrototypeOf(SkateSpot).call(this, props));
+	    return _possibleConstructorReturn(this, Object.getPrototypeOf(Coin).call(this, props));
 	  }
 
-	  _createClass(SkateSpot, [{
+	  _createClass(Coin, [{
 	    key: 'render',
 	    value: function render() {
 
 	      return _react2.default.createElement(
 	        'div',
 	        { style: _treasureStyle.outerDivStyle },
-	        _react2.default.createElement('div', { style: this.props.chestStyle })
+	        _react2.default.createElement('div', { style: _treasureStyle.newChestStyle })
 	      );
 	    }
 	  }]);
 
-	  return SkateSpot;
+	  return Coin;
 	}(_react2.default.Component);
 
-	exports.default = SkateSpot;
+	exports.default = Coin;
 
 /***/ },
 /* 255 */
@@ -27407,15 +27423,67 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _NavBar = __webpack_require__(257);
+	var _treasureStyle = __webpack_require__(253);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	var SkateSpot = function (_React$Component) {
+	  _inherits(SkateSpot, _React$Component);
+
+	  function SkateSpot(props) {
+	    _classCallCheck(this, SkateSpot);
+
+	    return _possibleConstructorReturn(this, Object.getPrototypeOf(SkateSpot).call(this, props));
+	  }
+
+	  _createClass(SkateSpot, [{
+	    key: 'render',
+	    value: function render() {
+
+	      return _react2.default.createElement(
+	        'div',
+	        { style: _treasureStyle.outerHomebaseDivStyle },
+	        _react2.default.createElement('div', { style: (0, _treasureStyle.homebaseStyle)(this.props.bankedCoins.length) })
+	      );
+	    }
+	  }]);
+
+	  return SkateSpot;
+	}(_react2.default.Component);
+
+	exports.default = SkateSpot;
+
+/***/ },
+/* 257 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	var _react = __webpack_require__(1);
+
+	var _react2 = _interopRequireDefault(_react);
+
+	var _NavBar = __webpack_require__(258);
 
 	var _NavBar2 = _interopRequireDefault(_NavBar);
 
-	var _Nav = __webpack_require__(279);
+	var _Nav = __webpack_require__(280);
 
 	var _Nav2 = _interopRequireDefault(_Nav);
 
-	var _NavItem = __webpack_require__(283);
+	var _NavItem = __webpack_require__(284);
 
 	var _NavItem2 = _interopRequireDefault(_NavItem);
 
@@ -27465,9 +27533,15 @@
 	            _react2.default.createElement(
 	              _NavItem2.default,
 	              { eventKey: 1, href: '#' },
-	              this.props.username,
-	              '\'s score: ',
-	              this.props.score
+	              'Score: ',
+	              this.props.bankedCoins.length
+	            ),
+	            _react2.default.createElement(
+	              _NavItem2.default,
+	              { eventKey: 1, href: '#' },
+	              'You are carrying ',
+	              this.props.carriedCoins.length,
+	              ' coins'
 	            )
 	          ),
 	          _react2.default.createElement(
@@ -27494,7 +27568,7 @@
 	exports.default = MyNav;
 
 /***/ },
-/* 257 */
+/* 258 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* eslint react/no-multi-comp: 0 */
@@ -27520,7 +27594,7 @@
 
 	var _reactPropTypesLibElementType2 = _interopRequireDefault(_reactPropTypesLibElementType);
 
-	var _uncontrollable = __webpack_require__(258);
+	var _uncontrollable = __webpack_require__(259);
 
 	var _uncontrollable2 = _interopRequireDefault(_uncontrollable);
 
@@ -27532,19 +27606,19 @@
 
 	var _Grid2 = _interopRequireDefault(_Grid);
 
-	var _NavbarBrand = __webpack_require__(261);
+	var _NavbarBrand = __webpack_require__(262);
 
 	var _NavbarBrand2 = _interopRequireDefault(_NavbarBrand);
 
-	var _NavbarCollapse = __webpack_require__(262);
+	var _NavbarCollapse = __webpack_require__(263);
 
 	var _NavbarCollapse2 = _interopRequireDefault(_NavbarCollapse);
 
-	var _NavbarHeader = __webpack_require__(277);
+	var _NavbarHeader = __webpack_require__(278);
 
 	var _NavbarHeader2 = _interopRequireDefault(_NavbarHeader);
 
-	var _NavbarToggle = __webpack_require__(278);
+	var _NavbarToggle = __webpack_require__(279);
 
 	var _NavbarToggle2 = _interopRequireDefault(_NavbarToggle);
 
@@ -27725,14 +27799,14 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 258 */
+/* 259 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
 	exports.__esModule = true;
 
-	var _createUncontrollable = __webpack_require__(259);
+	var _createUncontrollable = __webpack_require__(260);
 
 	var _createUncontrollable2 = _interopRequireDefault(_createUncontrollable);
 
@@ -27761,7 +27835,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 259 */
+/* 260 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -27780,7 +27854,7 @@
 
 	var _invariant2 = _interopRequireDefault(_invariant);
 
-	var _utils = __webpack_require__(260);
+	var _utils = __webpack_require__(261);
 
 	var utils = _interopRequireWildcard(_utils);
 
@@ -27917,7 +27991,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 260 */
+/* 261 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
@@ -28048,7 +28122,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(3)))
 
 /***/ },
-/* 261 */
+/* 262 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -28120,7 +28194,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 262 */
+/* 263 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -28139,7 +28213,7 @@
 
 	var _utilsBootstrapUtils = __webpack_require__(215);
 
-	var _Collapse = __webpack_require__(263);
+	var _Collapse = __webpack_require__(264);
 
 	var _Collapse2 = _interopRequireDefault(_Collapse);
 
@@ -28178,7 +28252,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 263 */
+/* 264 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -28193,7 +28267,7 @@
 
 	exports.__esModule = true;
 
-	var _domHelpersStyle = __webpack_require__(264);
+	var _domHelpersStyle = __webpack_require__(265);
 
 	var _domHelpersStyle2 = _interopRequireDefault(_domHelpersStyle);
 
@@ -28205,11 +28279,11 @@
 
 	var _classnames2 = _interopRequireDefault(_classnames);
 
-	var _reactOverlaysLibTransition = __webpack_require__(272);
+	var _reactOverlaysLibTransition = __webpack_require__(273);
 
 	var _reactOverlaysLibTransition2 = _interopRequireDefault(_reactOverlaysLibTransition);
 
-	var _utilsCreateChainedFunction = __webpack_require__(276);
+	var _utilsCreateChainedFunction = __webpack_require__(277);
 
 	var _utilsCreateChainedFunction2 = _interopRequireDefault(_utilsCreateChainedFunction);
 
@@ -28419,15 +28493,15 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 264 */
+/* 265 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var camelize = __webpack_require__(265),
-	    hyphenate = __webpack_require__(267),
-	    _getComputedStyle = __webpack_require__(269),
-	    removeStyle = __webpack_require__(271);
+	var camelize = __webpack_require__(266),
+	    hyphenate = __webpack_require__(268),
+	    _getComputedStyle = __webpack_require__(270),
+	    removeStyle = __webpack_require__(272);
 
 	var has = Object.prototype.hasOwnProperty;
 
@@ -28448,7 +28522,7 @@
 	};
 
 /***/ },
-/* 265 */
+/* 266 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -28458,7 +28532,7 @@
 	 */
 
 	'use strict';
-	var camelize = __webpack_require__(266);
+	var camelize = __webpack_require__(267);
 	var msPattern = /^-ms-/;
 
 	module.exports = function camelizeStyleName(string) {
@@ -28466,7 +28540,7 @@
 	};
 
 /***/ },
-/* 266 */
+/* 267 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -28480,7 +28554,7 @@
 	};
 
 /***/ },
-/* 267 */
+/* 268 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -28491,7 +28565,7 @@
 
 	"use strict";
 
-	var hyphenate = __webpack_require__(268);
+	var hyphenate = __webpack_require__(269);
 	var msPattern = /^ms-/;
 
 	module.exports = function hyphenateStyleName(string) {
@@ -28499,7 +28573,7 @@
 	};
 
 /***/ },
-/* 268 */
+/* 269 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -28511,14 +28585,14 @@
 	};
 
 /***/ },
-/* 269 */
+/* 270 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var babelHelpers = __webpack_require__(270);
+	var babelHelpers = __webpack_require__(271);
 
-	var _utilCamelizeStyle = __webpack_require__(265);
+	var _utilCamelizeStyle = __webpack_require__(266);
 
 	var _utilCamelizeStyle2 = babelHelpers.interopRequireDefault(_utilCamelizeStyle);
 
@@ -28564,7 +28638,7 @@
 	};
 
 /***/ },
-/* 270 */
+/* 271 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;(function (root, factory) {
@@ -28600,7 +28674,7 @@
 	})
 
 /***/ },
-/* 271 */
+/* 272 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -28610,7 +28684,7 @@
 	};
 
 /***/ },
-/* 272 */
+/* 273 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -28632,11 +28706,11 @@
 
 	var _reactDom2 = _interopRequireDefault(_reactDom);
 
-	var _properties = __webpack_require__(273);
+	var _properties = __webpack_require__(274);
 
 	var _properties2 = _interopRequireDefault(_properties);
 
-	var _on = __webpack_require__(275);
+	var _on = __webpack_require__(276);
 
 	var _on2 = _interopRequireDefault(_on);
 
@@ -28978,11 +29052,11 @@
 	exports.default = Transition;
 
 /***/ },
-/* 273 */
+/* 274 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
-	var canUseDOM = __webpack_require__(274);
+	var canUseDOM = __webpack_require__(275);
 
 	var has = Object.prototype.hasOwnProperty,
 	    transform = 'transform',
@@ -29038,18 +29112,18 @@
 	}
 
 /***/ },
-/* 274 */
+/* 275 */
 /***/ function(module, exports) {
 
 	'use strict';
 	module.exports = !!(typeof window !== 'undefined' && window.document && window.document.createElement);
 
 /***/ },
-/* 275 */
+/* 276 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
-	var canUseDOM = __webpack_require__(274);
+	var canUseDOM = __webpack_require__(275);
 	var on = function on() {};
 
 	if (canUseDOM) {
@@ -29066,7 +29140,7 @@
 	module.exports = on;
 
 /***/ },
-/* 276 */
+/* 277 */
 /***/ function(module, exports) {
 
 	/**
@@ -29112,7 +29186,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 277 */
+/* 278 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -29161,7 +29235,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 278 */
+/* 279 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -29184,7 +29258,7 @@
 
 	var _utilsBootstrapUtils = __webpack_require__(215);
 
-	var _utilsCreateChainedFunction = __webpack_require__(276);
+	var _utilsCreateChainedFunction = __webpack_require__(277);
 
 	var _utilsCreateChainedFunction2 = _interopRequireDefault(_utilsCreateChainedFunction);
 
@@ -29253,7 +29327,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 279 */
+/* 280 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
@@ -29272,7 +29346,7 @@
 
 	var _classnames2 = _interopRequireDefault(_classnames);
 
-	var _keycode = __webpack_require__(280);
+	var _keycode = __webpack_require__(281);
 
 	var _keycode2 = _interopRequireDefault(_keycode);
 
@@ -29284,7 +29358,7 @@
 
 	var _reactDom2 = _interopRequireDefault(_reactDom);
 
-	var _reactPropTypesLibAll = __webpack_require__(281);
+	var _reactPropTypesLibAll = __webpack_require__(282);
 
 	var _reactPropTypesLibAll2 = _interopRequireDefault(_reactPropTypesLibAll);
 
@@ -29294,11 +29368,11 @@
 
 	var _utilsBootstrapUtils = __webpack_require__(215);
 
-	var _utilsCreateChainedFunction = __webpack_require__(276);
+	var _utilsCreateChainedFunction = __webpack_require__(277);
 
 	var _utilsCreateChainedFunction2 = _interopRequireDefault(_utilsCreateChainedFunction);
 
-	var _utilsTabUtils = __webpack_require__(282);
+	var _utilsTabUtils = __webpack_require__(283);
 
 	var _utilsValidComponentChildren = __webpack_require__(220);
 
@@ -29602,7 +29676,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(3)))
 
 /***/ },
-/* 280 */
+/* 281 */
 /***/ function(module, exports) {
 
 	// Source: http://jsfiddle.net/vWx8V/
@@ -29754,7 +29828,7 @@
 
 
 /***/ },
-/* 281 */
+/* 282 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -29799,7 +29873,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 282 */
+/* 283 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -29845,7 +29919,7 @@
 	}
 
 /***/ },
-/* 283 */
+/* 284 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -29870,7 +29944,7 @@
 
 	var _SafeAnchor2 = _interopRequireDefault(_SafeAnchor);
 
-	var _utilsCreateChainedFunction = __webpack_require__(276);
+	var _utilsCreateChainedFunction = __webpack_require__(277);
 
 	var _utilsCreateChainedFunction2 = _interopRequireDefault(_utilsCreateChainedFunction);
 
@@ -29948,7 +30022,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 284 */
+/* 285 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -29956,10 +30030,10 @@
 	 * Module dependencies.
 	 */
 
-	var url = __webpack_require__(285);
-	var parser = __webpack_require__(290);
-	var Manager = __webpack_require__(298);
-	var debug = __webpack_require__(287)('socket.io-client');
+	var url = __webpack_require__(286);
+	var parser = __webpack_require__(291);
+	var Manager = __webpack_require__(299);
+	var debug = __webpack_require__(288)('socket.io-client');
 
 	/**
 	 * Module exports.
@@ -30041,12 +30115,12 @@
 	 * @api public
 	 */
 
-	exports.Manager = __webpack_require__(298);
-	exports.Socket = __webpack_require__(325);
+	exports.Manager = __webpack_require__(299);
+	exports.Socket = __webpack_require__(326);
 
 
 /***/ },
-/* 285 */
+/* 286 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {
@@ -30054,8 +30128,8 @@
 	 * Module dependencies.
 	 */
 
-	var parseuri = __webpack_require__(286);
-	var debug = __webpack_require__(287)('socket.io-client:url');
+	var parseuri = __webpack_require__(287);
+	var debug = __webpack_require__(288)('socket.io-client:url');
 
 	/**
 	 * Module exports.
@@ -30129,7 +30203,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 286 */
+/* 287 */
 /***/ function(module, exports) {
 
 	/**
@@ -30174,7 +30248,7 @@
 
 
 /***/ },
-/* 287 */
+/* 288 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -30184,7 +30258,7 @@
 	 * Expose `debug()` as the module.
 	 */
 
-	exports = module.exports = __webpack_require__(288);
+	exports = module.exports = __webpack_require__(289);
 	exports.log = log;
 	exports.formatArgs = formatArgs;
 	exports.save = save;
@@ -30348,7 +30422,7 @@
 
 
 /***/ },
-/* 288 */
+/* 289 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -30364,7 +30438,7 @@
 	exports.disable = disable;
 	exports.enable = enable;
 	exports.enabled = enabled;
-	exports.humanize = __webpack_require__(289);
+	exports.humanize = __webpack_require__(290);
 
 	/**
 	 * The currently active debug mode names, and names to skip.
@@ -30551,7 +30625,7 @@
 
 
 /***/ },
-/* 289 */
+/* 290 */
 /***/ function(module, exports) {
 
 	/**
@@ -30682,7 +30756,7 @@
 
 
 /***/ },
-/* 290 */
+/* 291 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -30690,12 +30764,12 @@
 	 * Module dependencies.
 	 */
 
-	var debug = __webpack_require__(287)('socket.io-parser');
-	var json = __webpack_require__(291);
-	var isArray = __webpack_require__(294);
-	var Emitter = __webpack_require__(295);
-	var binary = __webpack_require__(296);
-	var isBuf = __webpack_require__(297);
+	var debug = __webpack_require__(288)('socket.io-parser');
+	var json = __webpack_require__(292);
+	var isArray = __webpack_require__(295);
+	var Emitter = __webpack_require__(296);
+	var binary = __webpack_require__(297);
+	var isBuf = __webpack_require__(298);
 
 	/**
 	 * Protocol version.
@@ -31088,14 +31162,14 @@
 
 
 /***/ },
-/* 291 */
+/* 292 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(module, global) {/*! JSON v3.3.2 | http://bestiejs.github.io/json3 | Copyright 2012-2014, Kit Cambridge | http://kit.mit-license.org */
 	;(function () {
 	  // Detect the `define` function exposed by asynchronous module loaders. The
 	  // strict `define` check is necessary for compatibility with `r.js`.
-	  var isLoader = "function" === "function" && __webpack_require__(293);
+	  var isLoader = "function" === "function" && __webpack_require__(294);
 
 	  // A set of types used to distinguish objects from primitives.
 	  var objectTypes = {
@@ -31994,10 +32068,10 @@
 	  }
 	}).call(this);
 
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(292)(module), (function() { return this; }())))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(293)(module), (function() { return this; }())))
 
 /***/ },
-/* 292 */
+/* 293 */
 /***/ function(module, exports) {
 
 	module.exports = function(module) {
@@ -32013,7 +32087,7 @@
 
 
 /***/ },
-/* 293 */
+/* 294 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(__webpack_amd_options__) {module.exports = __webpack_amd_options__;
@@ -32021,7 +32095,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, {}))
 
 /***/ },
-/* 294 */
+/* 295 */
 /***/ function(module, exports) {
 
 	module.exports = Array.isArray || function (arr) {
@@ -32030,7 +32104,7 @@
 
 
 /***/ },
-/* 295 */
+/* 296 */
 /***/ function(module, exports) {
 
 	
@@ -32200,7 +32274,7 @@
 
 
 /***/ },
-/* 296 */
+/* 297 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/*global Blob,File*/
@@ -32209,8 +32283,8 @@
 	 * Module requirements
 	 */
 
-	var isArray = __webpack_require__(294);
-	var isBuf = __webpack_require__(297);
+	var isArray = __webpack_require__(295);
+	var isBuf = __webpack_require__(298);
 
 	/**
 	 * Replaces every Buffer | ArrayBuffer in packet with a numbered placeholder.
@@ -32348,7 +32422,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 297 */
+/* 298 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {
@@ -32368,7 +32442,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 298 */
+/* 299 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -32376,15 +32450,15 @@
 	 * Module dependencies.
 	 */
 
-	var eio = __webpack_require__(299);
-	var Socket = __webpack_require__(325);
-	var Emitter = __webpack_require__(326);
-	var parser = __webpack_require__(290);
-	var on = __webpack_require__(328);
-	var bind = __webpack_require__(329);
-	var debug = __webpack_require__(287)('socket.io-client:manager');
-	var indexOf = __webpack_require__(323);
-	var Backoff = __webpack_require__(332);
+	var eio = __webpack_require__(300);
+	var Socket = __webpack_require__(326);
+	var Emitter = __webpack_require__(327);
+	var parser = __webpack_require__(291);
+	var on = __webpack_require__(329);
+	var bind = __webpack_require__(330);
+	var debug = __webpack_require__(288)('socket.io-client:manager');
+	var indexOf = __webpack_require__(324);
+	var Backoff = __webpack_require__(333);
 
 	/**
 	 * IE6+ hasOwnProperty
@@ -32931,19 +33005,19 @@
 
 
 /***/ },
-/* 299 */
-/***/ function(module, exports, __webpack_require__) {
-
-	
-	module.exports =  __webpack_require__(300);
-
-
-/***/ },
 /* 300 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
-	module.exports = __webpack_require__(301);
+	module.exports =  __webpack_require__(301);
+
+
+/***/ },
+/* 301 */
+/***/ function(module, exports, __webpack_require__) {
+
+	
+	module.exports = __webpack_require__(302);
 
 	/**
 	 * Exports parser
@@ -32951,25 +33025,25 @@
 	 * @api public
 	 *
 	 */
-	module.exports.parser = __webpack_require__(308);
+	module.exports.parser = __webpack_require__(309);
 
 
 /***/ },
-/* 301 */
+/* 302 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
 	 * Module dependencies.
 	 */
 
-	var transports = __webpack_require__(302);
-	var Emitter = __webpack_require__(295);
-	var debug = __webpack_require__(287)('engine.io-client:socket');
-	var index = __webpack_require__(323);
-	var parser = __webpack_require__(308);
-	var parseuri = __webpack_require__(286);
-	var parsejson = __webpack_require__(324);
-	var parseqs = __webpack_require__(317);
+	var transports = __webpack_require__(303);
+	var Emitter = __webpack_require__(296);
+	var debug = __webpack_require__(288)('engine.io-client:socket');
+	var index = __webpack_require__(324);
+	var parser = __webpack_require__(309);
+	var parseuri = __webpack_require__(287);
+	var parsejson = __webpack_require__(325);
+	var parseqs = __webpack_require__(318);
 
 	/**
 	 * Module exports.
@@ -33093,9 +33167,9 @@
 	 */
 
 	Socket.Socket = Socket;
-	Socket.Transport = __webpack_require__(307);
-	Socket.transports = __webpack_require__(302);
-	Socket.parser = __webpack_require__(308);
+	Socket.Transport = __webpack_require__(308);
+	Socket.transports = __webpack_require__(303);
+	Socket.parser = __webpack_require__(309);
 
 	/**
 	 * Creates transport of the given type.
@@ -33690,17 +33764,17 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 302 */
+/* 303 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
 	 * Module dependencies
 	 */
 
-	var XMLHttpRequest = __webpack_require__(303);
-	var XHR = __webpack_require__(305);
-	var JSONP = __webpack_require__(320);
-	var websocket = __webpack_require__(321);
+	var XMLHttpRequest = __webpack_require__(304);
+	var XHR = __webpack_require__(306);
+	var JSONP = __webpack_require__(321);
+	var websocket = __webpack_require__(322);
 
 	/**
 	 * Export transports.
@@ -33750,11 +33824,11 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 303 */
+/* 304 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// browser shim for xmlhttprequest module
-	var hasCORS = __webpack_require__(304);
+	var hasCORS = __webpack_require__(305);
 
 	module.exports = function(opts) {
 	  var xdomain = opts.xdomain;
@@ -33792,7 +33866,7 @@
 
 
 /***/ },
-/* 304 */
+/* 305 */
 /***/ function(module, exports) {
 
 	
@@ -33815,18 +33889,18 @@
 
 
 /***/ },
-/* 305 */
+/* 306 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
 	 * Module requirements.
 	 */
 
-	var XMLHttpRequest = __webpack_require__(303);
-	var Polling = __webpack_require__(306);
-	var Emitter = __webpack_require__(295);
-	var inherit = __webpack_require__(318);
-	var debug = __webpack_require__(287)('engine.io-client:polling-xhr');
+	var XMLHttpRequest = __webpack_require__(304);
+	var Polling = __webpack_require__(307);
+	var Emitter = __webpack_require__(296);
+	var inherit = __webpack_require__(319);
+	var debug = __webpack_require__(288)('engine.io-client:polling-xhr');
 
 	/**
 	 * Module exports.
@@ -34234,19 +34308,19 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 306 */
+/* 307 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
 	 * Module dependencies.
 	 */
 
-	var Transport = __webpack_require__(307);
-	var parseqs = __webpack_require__(317);
-	var parser = __webpack_require__(308);
-	var inherit = __webpack_require__(318);
-	var yeast = __webpack_require__(319);
-	var debug = __webpack_require__(287)('engine.io-client:polling');
+	var Transport = __webpack_require__(308);
+	var parseqs = __webpack_require__(318);
+	var parser = __webpack_require__(309);
+	var inherit = __webpack_require__(319);
+	var yeast = __webpack_require__(320);
+	var debug = __webpack_require__(288)('engine.io-client:polling');
 
 	/**
 	 * Module exports.
@@ -34259,7 +34333,7 @@
 	 */
 
 	var hasXHR2 = (function() {
-	  var XMLHttpRequest = __webpack_require__(303);
+	  var XMLHttpRequest = __webpack_require__(304);
 	  var xhr = new XMLHttpRequest({ xdomain: false });
 	  return null != xhr.responseType;
 	})();
@@ -34487,15 +34561,15 @@
 
 
 /***/ },
-/* 307 */
+/* 308 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
 	 * Module dependencies.
 	 */
 
-	var parser = __webpack_require__(308);
-	var Emitter = __webpack_require__(295);
+	var parser = __webpack_require__(309);
+	var Emitter = __webpack_require__(296);
 
 	/**
 	 * Module exports.
@@ -34648,19 +34722,19 @@
 
 
 /***/ },
-/* 308 */
+/* 309 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
 	 * Module dependencies.
 	 */
 
-	var keys = __webpack_require__(309);
-	var hasBinary = __webpack_require__(310);
-	var sliceBuffer = __webpack_require__(312);
-	var base64encoder = __webpack_require__(313);
-	var after = __webpack_require__(314);
-	var utf8 = __webpack_require__(315);
+	var keys = __webpack_require__(310);
+	var hasBinary = __webpack_require__(311);
+	var sliceBuffer = __webpack_require__(313);
+	var base64encoder = __webpack_require__(314);
+	var after = __webpack_require__(315);
+	var utf8 = __webpack_require__(316);
 
 	/**
 	 * Check if we are running an android browser. That requires us to use
@@ -34717,7 +34791,7 @@
 	 * Create a blob api even for blob builder when vendor prefixes exist
 	 */
 
-	var Blob = __webpack_require__(316);
+	var Blob = __webpack_require__(317);
 
 	/**
 	 * Encodes a packet.
@@ -35249,7 +35323,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 309 */
+/* 310 */
 /***/ function(module, exports) {
 
 	
@@ -35274,7 +35348,7 @@
 
 
 /***/ },
-/* 310 */
+/* 311 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {
@@ -35282,7 +35356,7 @@
 	 * Module requirements.
 	 */
 
-	var isArray = __webpack_require__(311);
+	var isArray = __webpack_require__(312);
 
 	/**
 	 * Module exports.
@@ -35339,7 +35413,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 311 */
+/* 312 */
 /***/ function(module, exports) {
 
 	module.exports = Array.isArray || function (arr) {
@@ -35348,7 +35422,7 @@
 
 
 /***/ },
-/* 312 */
+/* 313 */
 /***/ function(module, exports) {
 
 	/**
@@ -35383,7 +35457,7 @@
 
 
 /***/ },
-/* 313 */
+/* 314 */
 /***/ function(module, exports) {
 
 	/*
@@ -35448,7 +35522,7 @@
 
 
 /***/ },
-/* 314 */
+/* 315 */
 /***/ function(module, exports) {
 
 	module.exports = after
@@ -35482,7 +35556,7 @@
 
 
 /***/ },
-/* 315 */
+/* 316 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(module, global) {/*! https://mths.be/utf8js v2.0.0 by @mathias */
@@ -35728,10 +35802,10 @@
 
 	}(this));
 
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(292)(module), (function() { return this; }())))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(293)(module), (function() { return this; }())))
 
 /***/ },
-/* 316 */
+/* 317 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
@@ -35834,7 +35908,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 317 */
+/* 318 */
 /***/ function(module, exports) {
 
 	/**
@@ -35877,7 +35951,7 @@
 
 
 /***/ },
-/* 318 */
+/* 319 */
 /***/ function(module, exports) {
 
 	
@@ -35889,7 +35963,7 @@
 	};
 
 /***/ },
-/* 319 */
+/* 320 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -35963,7 +36037,7 @@
 
 
 /***/ },
-/* 320 */
+/* 321 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {
@@ -35971,8 +36045,8 @@
 	 * Module requirements.
 	 */
 
-	var Polling = __webpack_require__(306);
-	var inherit = __webpack_require__(318);
+	var Polling = __webpack_require__(307);
+	var inherit = __webpack_require__(319);
 
 	/**
 	 * Module exports.
@@ -36208,19 +36282,19 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 321 */
+/* 322 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
 	 * Module dependencies.
 	 */
 
-	var Transport = __webpack_require__(307);
-	var parser = __webpack_require__(308);
-	var parseqs = __webpack_require__(317);
-	var inherit = __webpack_require__(318);
-	var yeast = __webpack_require__(319);
-	var debug = __webpack_require__(287)('engine.io-client:websocket');
+	var Transport = __webpack_require__(308);
+	var parser = __webpack_require__(309);
+	var parseqs = __webpack_require__(318);
+	var inherit = __webpack_require__(319);
+	var yeast = __webpack_require__(320);
+	var debug = __webpack_require__(288)('engine.io-client:websocket');
 	var BrowserWebSocket = global.WebSocket || global.MozWebSocket;
 
 	/**
@@ -36232,7 +36306,7 @@
 	var WebSocket = BrowserWebSocket;
 	if (!WebSocket && typeof window === 'undefined') {
 	  try {
-	    WebSocket = __webpack_require__(322);
+	    WebSocket = __webpack_require__(323);
 	  } catch (e) { }
 	}
 
@@ -36503,13 +36577,13 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 322 */
+/* 323 */
 /***/ function(module, exports) {
 
 	/* (ignored) */
 
 /***/ },
-/* 323 */
+/* 324 */
 /***/ function(module, exports) {
 
 	
@@ -36524,7 +36598,7 @@
 	};
 
 /***/ },
-/* 324 */
+/* 325 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/**
@@ -36562,7 +36636,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 325 */
+/* 326 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -36570,13 +36644,13 @@
 	 * Module dependencies.
 	 */
 
-	var parser = __webpack_require__(290);
-	var Emitter = __webpack_require__(326);
-	var toArray = __webpack_require__(327);
-	var on = __webpack_require__(328);
-	var bind = __webpack_require__(329);
-	var debug = __webpack_require__(287)('socket.io-client:socket');
-	var hasBin = __webpack_require__(330);
+	var parser = __webpack_require__(291);
+	var Emitter = __webpack_require__(327);
+	var toArray = __webpack_require__(328);
+	var on = __webpack_require__(329);
+	var bind = __webpack_require__(330);
+	var debug = __webpack_require__(288)('socket.io-client:socket');
+	var hasBin = __webpack_require__(331);
 
 	/**
 	 * Module exports.
@@ -36980,7 +37054,7 @@
 
 
 /***/ },
-/* 326 */
+/* 327 */
 /***/ function(module, exports) {
 
 	
@@ -37147,7 +37221,7 @@
 
 
 /***/ },
-/* 327 */
+/* 328 */
 /***/ function(module, exports) {
 
 	module.exports = toArray
@@ -37166,7 +37240,7 @@
 
 
 /***/ },
-/* 328 */
+/* 329 */
 /***/ function(module, exports) {
 
 	
@@ -37196,7 +37270,7 @@
 
 
 /***/ },
-/* 329 */
+/* 330 */
 /***/ function(module, exports) {
 
 	/**
@@ -37225,7 +37299,7 @@
 
 
 /***/ },
-/* 330 */
+/* 331 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {
@@ -37233,7 +37307,7 @@
 	 * Module requirements.
 	 */
 
-	var isArray = __webpack_require__(331);
+	var isArray = __webpack_require__(332);
 
 	/**
 	 * Module exports.
@@ -37291,7 +37365,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 331 */
+/* 332 */
 /***/ function(module, exports) {
 
 	module.exports = Array.isArray || function (arr) {
@@ -37300,7 +37374,7 @@
 
 
 /***/ },
-/* 332 */
+/* 333 */
 /***/ function(module, exports) {
 
 	
