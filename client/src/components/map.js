@@ -33,12 +33,12 @@ export default class OurMap extends React.Component {
     }
 
     var pageToRenderNow = 
-      Object.keys(this.props.locationsArray).map((location, index) => {
+      Object.keys(this.props.locationsArray).map((user, index) => {
         return (<OtherUsers 
-          key={location._id || index}
+          key={this.props.locationsArray[user]._id || index}
           locationStyle={otherUserSpotStyle}
-          lat={location.substring(0,7)}
-          lng={location.substring(7,17)}
+          lat={this.props.locationsArray[user].substring(0,7)}
+          lng={this.props.locationsArray[user].substring(7,17)}
         />);
       })
 

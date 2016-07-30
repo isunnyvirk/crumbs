@@ -24363,12 +24363,12 @@
 	        });
 	      }
 
-	      var pageToRenderNow = Object.keys(this.props.locationsArray).map(function (location, index) {
+	      var pageToRenderNow = Object.keys(this.props.locationsArray).map(function (user, index) {
 	        return _react2.default.createElement(_otherUsers2.default, {
-	          key: location._id || index,
+	          key: _this2.props.locationsArray[user]._id || index,
 	          locationStyle: _treasureStyle.otherUserSpotStyle,
-	          lat: location.substring(0, 7),
-	          lng: location.substring(7, 17)
+	          lat: _this2.props.locationsArray[user].substring(0, 7),
+	          lng: _this2.props.locationsArray[user].substring(7, 17)
 	        });
 	      });
 
