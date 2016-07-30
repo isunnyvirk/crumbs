@@ -17,16 +17,17 @@ export default class OurMap extends React.Component {
   }
 
   render() {
+    console.log('tje loc',this.props.locationsArray)
     // google map component from google-map-react
+
     if (this.props.locationsArray.length >  0) {
       var pageToRender =  
         this.props.locationsArray.map((location, index) => {
-          console.log('the location is', location.location.substring());
           return (<OtherUsers 
             key={location._id || index}
             locationStyle={otherUserSpotStyle}
-            lat={location.location.substring(0,7)}
-            lng={location.location.substring(7,17)}
+            lat={location.substring(0,7)}
+            lng={location.substring(7,17)}
           />);
         })
     }

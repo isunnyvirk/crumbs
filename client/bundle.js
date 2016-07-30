@@ -21153,7 +21153,7 @@
 	      score: 0,
 	      treasureChestData: [],
 	      userChests: {},
-	      locationsArray: [{ location: '37.7883-122.4156' }],
+	      locationsArray: [],
 	      otherUsers: {}
 	    };
 	    return _this;
@@ -21251,7 +21251,7 @@
 	          });
 
 	          var tempLocationsArray = _this2.state.locationsArray;
-	          tempLocationsArray.push(tempUsers);
+	          tempLocationsArray.push(tempUsers.location);
 	          _this2.setState({
 	            locationsArray: tempLocationsArray
 	          });
@@ -24349,15 +24349,16 @@
 	    value: function render() {
 	      var _this2 = this;
 
+	      console.log('tje loc', this.props.locationsArray);
 	      // google map component from google-map-react
+
 	      if (this.props.locationsArray.length > 0) {
 	        var pageToRender = this.props.locationsArray.map(function (location, index) {
-	          console.log('the location is', location.location.substring());
 	          return _react2.default.createElement(_otherUsers2.default, {
 	            key: location._id || index,
 	            locationStyle: _treasureStyle.otherUserSpotStyle,
-	            lat: location.location.substring(0, 7),
-	            lng: location.location.substring(7, 17)
+	            lat: location.substring(0, 7),
+	            lng: location.substring(7, 17)
 	          });
 	        });
 	      }
