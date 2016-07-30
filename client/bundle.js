@@ -21543,39 +21543,8 @@
 
 	      return _react2.default.createElement(
 	        'div',
-	        { className: 'homepage-hero-module' },
-	        _react2.default.createElement(
-	          'div',
-	          { className: 'video-container' },
-	          _react2.default.createElement('div', { className: 'filter' }),
-	          _react2.default.createElement(
-	            'video',
-	            { autoPlay: true, loop: true, className: 'fillWidth' },
-	            _react2.default.createElement('source', { src: '../resources/Lonely-Chair/MP4/Lonely-Chair.mp4', type: 'video/mp4' }),
-	            'Your browser does not support the video tag. I suggest you upgrade your browser.',
-	            _react2.default.createElement('source', { src: '../resources/Lonely-Chair/WEBM/Lonely-Chair.webm', type: 'video/webm' }),
-	            'Your browser does not support the video tag. I suggest you upgrade your browser.'
-	          ),
-	          _react2.default.createElement(
-	            'div',
-	            { className: 'poster hidden' },
-	            _react2.default.createElement('img', { src: '../resources/Lonely-Chair/Snapshots/Lonely-Chair.jpg', alt: '' })
-	          )
-	        ),
-	        _react2.default.createElement(
-	          'div',
-	          { className: 'headerContainer' },
-	          _react2.default.createElement(
-	            'h1',
-	            { className: 'hoarders' },
-	            'Hoarders'
-	          )
-	        ),
-	        _react2.default.createElement(
-	          'div',
-	          { className: 'loginBox' },
-	          pageToRender
-	        )
+	        null,
+	        pageToRender
 	      );
 	    }
 	  }]);
@@ -21631,7 +21600,7 @@
 	var Login = exports.Login = function Login(props) {
 	  return _react2.default.createElement(
 	    _Grid2.default,
-	    { className: 'LoginContainer' },
+	    null,
 	    _react2.default.createElement(
 	      _Row2.default,
 	      null,
@@ -24140,7 +24109,7 @@
 	var SignUp = exports.SignUp = function SignUp(props) {
 	  return _react2.default.createElement(
 	    _Grid2.default,
-	    { className: 'LoginContainer' },
+	    null,
 	    _react2.default.createElement(
 	      _Row2.default,
 	      null,

@@ -8,7 +8,7 @@ import FormControl from 'react-bootstrap/lib/FormControl';
 import Button from 'react-bootstrap/lib/Button';
 
 export const Login = (props) => (
-  <Grid className="LoginContainer">
+  <Grid>
     <Row>
       <Col xs={7} sm={7} md={7} className="authComponent">
         <h1 className="welcome">Welcome Back</h1>
