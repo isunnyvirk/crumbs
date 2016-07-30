@@ -24329,8 +24329,8 @@
 	          return _react2.default.createElement(_otherUsers2.default, {
 	            key: location._id || index,
 	            locationStyle: _treasureStyle.otherUserSpotStyle,
-	            lat: location.substring(0, 7),
-	            lng: location.substring(7, 17)
+	            lat: location.location.substring(0, 7),
+	            lng: location.location.substring(7, 17)
 	          });
 	        });
 	      }

@@ -25,8 +25,8 @@ export default class OurMap extends React.Component {
           return (<OtherUsers 
             key={location._id || index}
             locationStyle={otherUserSpotStyle}
-            lat={location.substring(0,7)}
-            lng={location.substring(7,17)}
+            lat={location.location.substring(0,7)}
+            lng={location.location.substring(7,17)}
           />);
         })
     }
