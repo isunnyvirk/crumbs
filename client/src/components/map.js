@@ -19,17 +19,17 @@ export default class OurMap extends React.Component {
 
   render() {
 
-    // if (this.props.locationsArray.length >  0) {
-    //   var pageToRender =  
-    //     this.props.locationsArray.map((location, index) => {
-    //       return (<OtherUsers 
-    //         key={location._id || index}
-    //         locationStyle={otherUserSpotStyle}
-    //         lat={location.substring(0,7)}
-    //         lng={location.substring(7,17)}
-    //       />);
-    //     })
-    // }
+    if (this.props.locationsArray.length >  0) {
+      var pageToRender =  
+        this.props.locationsArray.map((location, index) => {
+          return (<OtherUsers 
+            key={location._id || index}
+            locationStyle={otherUserSpotStyle}
+            lat={location.substring(0,7)}
+            lng={location.substring(7,17)}
+          />);
+        })
+    }
         // return (<OtherUsers 
         //   key={this.props.locationsArray[user]._id || index}
         //   locationStyle={otherUserSpotStyle}
@@ -37,12 +37,12 @@ export default class OurMap extends React.Component {
         //   lng={this.props.locationsArray[user].substring(7,17)}
         // />);
 
-    var pageToRenderNow = 
-      Object.keys(this.props.locationsArray).map((user, index) => {
-        if (this.props.locationArray[user] !== undefined){
-         console.log('this is',this.props.locationArray[user]);
-        }
-      })
+    // var pageToRenderNow = 
+    //   Object.keys(this.props.locationsArray).map((user, index) => {
+    //     if (user !== undefined){
+    //      console.log('this is',this.props.locationArray[user]);
+    //     }
+    //   })
 
     return (
       <GoogleMap
@@ -65,6 +65,8 @@ export default class OurMap extends React.Component {
             lng={coin.substring(7, 17)}    
           />);
         })}
+
+        {pageToRender}
         
       </GoogleMap>
     );

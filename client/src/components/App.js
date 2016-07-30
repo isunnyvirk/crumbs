@@ -76,7 +76,7 @@ export default class App extends React.Component {
           otherUsers: tempUsers
         });
 
-        var tempLocationsArray = this.state.locationsArray;
+        var tempLocationsArray = [];
         tempLocationsArray.push(tempUsers);
         this.setState({
           locationsArray: tempLocationsArray
@@ -272,7 +272,7 @@ export default class App extends React.Component {
         logOutUser={this.logOutUser}
         zoom={this.state.zoom}
         center={this.state.center}
-        locationsArray={this.state.otherUsers}
+        locationsArray={this.state.locationsArray}
         coinsOnMap={this.state.coinsOnMap}
         carriedCoins={this.state.carriedCoins}
         bankedCoins={this.state.bankedCoins}
