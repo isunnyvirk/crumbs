@@ -7,17 +7,17 @@ export default class App extends React.Component {
     super(props);
 
     this.state = {
-      // location: '',
       location: '',
       userLoggedIn: !!localStorage.token,
       username: localStorage.token,
       center: { lat: 37.7821, lng: -122.4090 },
       zoom: 17,
-      homebase: '37.783-122.409',
+      // homebase: '37.783-122.409',
       counter: 0,
-      bankedCoins: [], //all banked coins added up
-      carriedCoins: [], //all coins currently carried not in bank
-      coinsOnMap: [], //all locations on map where there are coins
+      bankedCoins: [], // all banked coins added up
+      carriedCoins: [], // all coins currently carried not in bank
+      coinsOnMap: [], // all locations on map where there are coins
+      homebase: '37.7837-122.4090',
     };
   }
 
@@ -253,6 +253,7 @@ export default class App extends React.Component {
         coinsOnMap={this.state.coinsOnMap}
         carriedCoins={this.state.carriedCoins}
         bankedCoins={this.state.bankedCoins}
+        homebase={this.state.homebase}
       />
     );
 

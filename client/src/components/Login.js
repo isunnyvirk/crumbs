@@ -8,38 +8,40 @@ import FormControl from 'react-bootstrap/lib/FormControl';
 import Button from 'react-bootstrap/lib/Button';
 
 export const Login = (props) => (
-  <Grid>
+  <Grid className="LoginContainer">
     <Row>
-      <Col xs={7} sm={5} md={4} className="authComponent">
+      <Col xs={7} sm={7} md={7} className="authComponent">
         <h1 className="welcome">Welcome Back</h1>
       </Col>
     </Row>
 
     <Form horizontal>
       <FormGroup>
-        <Col xs={7} sm={5} md={4} className="authComponent">
+        <Col xs={7} sm={7} md={7} className="authComponent">
           <FormControl
             onChange={props.userChange}
             value={props.usernameText}
             type="text"
             placeholder="Username"
+            className="transparent"
           />
         </Col>
       </FormGroup>
 
       <FormGroup controlId="formHorizontalPassword">
-        <Col xs={7} sm={5} md={4} className="authComponent">
+        <Col xs={7} sm={7} md={7} className="authComponent">
           <FormControl
             onChange={props.passwordChange}
             value={props.passwordText}
             type="password"
             placeholder="Password"
+            className="transparent"
           />
         </Col>
       </FormGroup>
 
       <FormGroup>
-        <Col xs={7} sm={5} md={4} className="authComponent">
+        <Col xs={7} sm={7} md={7} className="authComponent">
           <Button
             onClick={props.validateUserLogin.bind(this)}
             type="submit"
@@ -48,9 +50,9 @@ export const Login = (props) => (
           >Sign in
           </Button>
           <br />
-          <span className="signing">Don't have an account yet?
+          <div className="signing">Don't have an account yet?
             <span className="clickable" onClick={props.signUp}> Create one </span>
-          </span>
+          </div>
         </Col>
       </FormGroup>
     </Form>
