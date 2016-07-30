@@ -22,7 +22,7 @@ export default class App extends React.Component {
       score: 0,
       treasureChestData: [],
       userChests: {},
-      locationsArray: [{location:'37.7883-122.4156'}],
+      locationsArray: [],
       otherUsers: {},
     };
   }
@@ -93,7 +93,7 @@ export default class App extends React.Component {
         });
 
         var tempLocationsArray = this.state.locationsArray;
-        tempLocationsArray.push(tempUsers);
+        tempLocationsArray.push(tempUsers.location);
         this.setState({
           locationsArray: tempLocationsArray
         });
