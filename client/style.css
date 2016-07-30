@@ -119,3 +119,14 @@
     height: 100%;
   }
 }
+
+
+@media (max-width: 767px) {
+  .video-container {
+    background: url('../resources/Lonely-Chair/Snapshots/Lonely-Chair.jpg') center center / cover no-repeat;
+  }
+
+  video {
+    display: none;
+  }
+}
